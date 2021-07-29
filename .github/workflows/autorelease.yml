@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags: ["v[1-9]+.[0-9]+.[0-9]+"]
+    branches: [main]
+
+jobs:
+
+  dll-build:
+    name: Build the DLL
+    if: startsWith( github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    
+    - name: OS Packages 
+      run: |
+        sudo apt-get update --fix-missing && sudo apt-get -y install \
+        git build-essential zlib1g zlib1g-dev wget zip unzip \
+        mingw-w64 binutils-mingw-w64 g++-mingw-w64 gcc-multilib
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Git Fetch Tags
+      run: git fetch --prune --unshallow --tags -f
+
+    - name: Go Assets
+      run: make dll dll32
+
+    - name: Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: DLL
+        path: ./COFFLoader.*.dll
+
+  tagged-release:
+
+    needs: [build]
+
+    name: "Tagged Release"
+    if: startsWith( github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - run: mkdir -p ./release && mkdir -p ./artifacts
+    - uses: actions/download-artifact@v2
+      with:
+        path: ./artifacts
+
+    - name: Release
+      run: mkdir -p ./release
+
+    - name: DLL x86
+      run: |
+        zip -j ./release/COFFLoader.x86.dll.zip ./artifacts/DLL/COFFLoader.x86.dll
+
+    - name: DLL x64
+      run: |
+        zip -j ./release/COFFLoader.x64.dll.zip ./artifacts/DLL/COFFLoader.x64.dll
+
+    - name: "Publish Release"
+      uses: "marvinpinto/action-automatic-releases@latest"
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        prerelease: false
+        files: |
+          ./release/*
