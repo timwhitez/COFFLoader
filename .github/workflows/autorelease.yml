@@ -20,13 +20,13 @@ jobs:
         git build-essential zlib1g zlib1g-dev wget zip unzip \
         mingw-w64 binutils-mingw-w64 g++-mingw-w64 gcc-multilib
 
-    - name: Check out code into the Go module directory
+    - name: Check out code
       uses: actions/checkout@v2
 
     - name: Git Fetch Tags
       run: git fetch --prune --unshallow --tags -f
 
-    - name: Go Assets
+    - name: Build
       run: make dll dll32
 
     - name: Artifacts
