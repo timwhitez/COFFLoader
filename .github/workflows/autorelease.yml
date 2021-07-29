@@ -64,11 +64,11 @@ jobs:
 
     - name: DLL x86
       run: |
-        cp ./release/COFFLoader.x86.dll ./artifacts/dll-32/COFFLoader.x86.dll
+        cp ./artifacts/dll-32/COFFLoader.x86.dll ./release/COFFLoader.x86.dll
 
     - name: DLL x64
       run: |
-        cp ./release/COFFLoader.x64.dll ./artifacts/dll-64/COFFLoader.x64.dll
+        cp ./artifacts/dll-64/COFFLoader.x64.dll ./release/COFFLoader.x64.dll
 
     - name: "Publish Release"
       uses: "marvinpinto/action-automatic-releases@latest"
