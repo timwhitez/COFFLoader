@@ -37,7 +37,7 @@ jobs:
 
   tagged-release:
 
-    needs: [build]
+    needs: [dll-build]
 
     name: "Tagged Release"
     if: startsWith( github.ref, 'refs/tags/v')
