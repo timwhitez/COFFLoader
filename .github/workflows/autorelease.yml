@@ -55,11 +55,11 @@ jobs:
 
     - name: DLL x86
       run: |
-        zip -j ./release/COFFLoader.x86.dll.zip ./artifacts/DLL/COFFLoader.x86.dll
+        cp ./release/COFFLoader.x86.dll ./artifacts/DLL/COFFLoader.x86.dll
 
     - name: DLL x64
       run: |
-        zip -j ./release/COFFLoader.x64.dll.zip ./artifacts/DLL/COFFLoader.x64.dll
+        cp ./release/COFFLoader.x64.dll ./artifacts/DLL/COFFLoader.x64.dll
 
     - name: "Publish Release"
       uses: "marvinpinto/action-automatic-releases@latest"
