@@ -26,14 +26,23 @@ jobs:
     - name: Git Fetch Tags
       run: git fetch --prune --unshallow --tags -f
 
-    - name: Build
-      run: make dll dll32
+    - name: Build 32 bits
+      run: make dll32
+
+    - name: Build 64 bits
+      run: make dll
 
     - name: Artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: DLL
-        path: ./COFFLoader.*.dll
+        name: dll-32
+        path: ./COFFLoader.x86.dll
+
+    - name: Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: dll-64
+        path: ./COFFLoader.x64.dll
 
   tagged-release:
 
@@ -55,11 +64,11 @@ jobs:
 
     - name: DLL x86
       run: |
-        cp ./release/COFFLoader.x86.dll ./artifacts/DLL/COFFLoader.x86.dll
+        cp ./release/COFFLoader.x86.dll ./artifacts/dll-32/COFFLoader.x86.dll
 
     - name: DLL x64
       run: |
-        cp ./release/COFFLoader.x64.dll ./artifacts/DLL/COFFLoader.x64.dll
+        cp ./release/COFFLoader.x64.dll ./artifacts/dll-64/COFFLoader.x64.dll
 
     - name: "Publish Release"
       uses: "marvinpinto/action-automatic-releases@latest"
