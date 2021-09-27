@@ -218,6 +218,9 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
     int reloccount = 0;
     int tempcounter = 0;
     uint32_t symptr = 0;
+    long unsigned int old_prot = 0;
+    uint32_t protect = 0;
+    uint32_t protect_index = 0;
 #ifdef _WIN32
     void *funcptrlocation = NULL;
     int32_t offsetvalue = 0;
@@ -287,7 +290,7 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
          * before execution to either PAGE_READWRITE or PAGE_EXECUTE_READ
          * depending on the Section Characteristics. Parse them all again
          * before running and set the memory permissions. */
-        sectionMapping[counter] = VirtualAlloc(NULL, coff_sect_ptr->SizeOfRawData, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_EXECUTE_READWRITE);
+        sectionMapping[counter] = VirtualAlloc(NULL, coff_sect_ptr->SizeOfRawData, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
 #ifdef DEBUG
         sectionSize[counter] = coff_sect_ptr->SizeOfRawData;
 #endif
@@ -297,6 +300,14 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
         }
         DEBUG_PRINT("Allocated section %d at %p\n", counter, sectionMapping[counter]);
         memcpy(sectionMapping[counter], coff_data + coff_sect_ptr->PointerToRawData, coff_sect_ptr->SizeOfRawData);
+        protect_index = coff_sect_ptr->Characteristics >> 29;
+        protect = ProtectionFlags[protect_index];
+        if (VirtualProtect(sectionMapping[counter], coff_sect_ptr->SizeOfRawData, protect, &old_prot) == 0)
+        {
+            DEBUG_PRINT("Could not change page protection\n");
+            return 1;
+        }
+
 #endif
     }
 
@@ -539,6 +550,7 @@ int main(int argc, char *argv[])
     coff_data = (char *)getContents(argv[2], &filesize);
     if (coff_data == NULL)
     {
+        printf("ERROR: empty bof file\n");
         return 1;
     }
     printf("Got contents of COFF file\n");

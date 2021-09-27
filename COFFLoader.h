@@ -2,6 +2,7 @@
 #define COFFLOADER_H_
 #include <stdio.h>
 #include <stdint.h>
+#include <windows.h>
 
 /* These seem to be the same sizes across architectures, relocations are different though. Defined both sets of types. */
 
@@ -58,6 +59,27 @@ typedef struct coff_sym
     uint8_t NumberOfAuxSymbols;
 
 } coff_sym_t;
+
+// var ProtectionFlags = [8]uint32{
+// 		windows.PAGE_NOACCESS,          // not writeable, not readable, not executable
+// 		windows.PAGE_EXECUTE,           // not writeable, not readable, executable
+// 		windows.PAGE_READONLY,          // not writeable, readable, not executable
+// 		windows.PAGE_EXECUTE_READ,      // not writeable, readable, executable
+// 		windows.PAGE_WRITECOPY,         // writeable, not readable, not executable
+// 		windows.PAGE_EXECUTE_WRITECOPY, // writeable, not readable, executable
+// 		windows.PAGE_READWRITE,         // writeable, readable, not executable
+// 		windows.PAGE_EXECUTE_READWRITE, // writeable, readable, executable
+// 	}
+uint32_t ProtectionFlags[8] = {
+    PAGE_NOACCESS,          // not writeable, not readable, not executable
+    PAGE_EXECUTE,           // not writeable, not readable, executable
+    PAGE_READONLY,          // not writeable, readable, not executable
+    PAGE_EXECUTE_READ,      // not writeable, readable, executable
+    PAGE_WRITECOPY,         // writeable, not readable, not executable
+    PAGE_EXECUTE_WRITECOPY, // writeable, not readable, executable
+    PAGE_READWRITE,         // writeable, readable, not executable
+    PAGE_EXECUTE_READWRITE, // writeable, readable, executable
+};
 
 #pragma pack(pop)
 /* AMD64 Specific types */
