@@ -300,13 +300,6 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
         }
         DEBUG_PRINT("Allocated section %d at %p\n", counter, sectionMapping[counter]);
         memcpy(sectionMapping[counter], coff_data + coff_sect_ptr->PointerToRawData, coff_sect_ptr->SizeOfRawData);
-        protect_index = coff_sect_ptr->Characteristics >> 29;
-        protect = ProtectionFlags[protect_index];
-        if (VirtualProtect(sectionMapping[counter], coff_sect_ptr->SizeOfRawData, protect, &old_prot) == 0)
-        {
-            DEBUG_PRINT("Could not change page protection\n");
-            return 1;
-        }
 
 #endif
     }
@@ -314,9 +307,9 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
     /* Allocate and setup the GOT for functions, same here as above. */
 #ifdef _WIN32
 #ifdef _WIN64
-    functionMapping = VirtualAlloc(NULL, 2048, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_EXECUTE_READWRITE);
+    functionMapping = VirtualAlloc(NULL, 2048, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
 #else
-    functionMapping = VirtualAlloc(NULL, 2048, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_EXECUTE_READWRITE);
+    functionMapping = VirtualAlloc(NULL, 2048, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
 #endif
 #endif
 
@@ -484,6 +477,38 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
     }
 #endif
 #endif
+    // Apply proper page permissions
+    for (counter = 0; counter < coff_header_ptr->NumberOfSections; counter++)
+    {
+        coff_sect_ptr = (coff_sect_t *)(coff_data + sizeof(coff_file_header_t) + (sizeof(coff_sect_t) * counter));
+        if (coff_sect_ptr->SizeOfRawData > 0)
+        {
+            protect_index = coff_sect_ptr->Characteristics >> 29;
+            protect = ProtectionFlags[protect_index];
+            DEBUG_PRINT("New page prot flag: 0x%08x\n", protect);
+            if ((coff_sect_ptr->Characteristics & IMAGE_SCN_MEM_NOT_CACHED) != 0)
+            {
+                protect |= PAGE_NOCACHE;
+            }
+            if (VirtualProtect(sectionMapping[counter], coff_sect_ptr->SizeOfRawData, protect, &old_prot) == 0)
+            {
+#if DEBUG
+                DWORD error = GetLastError();
+                DEBUG_PRINT("Could not change page protection: %08x\n", error);
+#endif
+                return 1;
+            }
+        }
+    }
+
+    if (VirtualProtect(functionMapping, 2048, PAGE_EXECUTE_READ, &old_prot) == 0)
+    {
+#if DEBUG
+        DWORD error = GetLastError();
+        DEBUG_PRINT("Could not change page protection on functionMapping: %08x\n", error);
+#endif
+        return 1;
+    }
 
     DEBUG_PRINT("Symbols:\n");
     for (tempcounter = 0; tempcounter < coff_header_ptr->NumberOfSymbols; tempcounter++)
@@ -509,11 +534,14 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
 
     /* Cleanup the allocated memory */
 #ifdef _WIN32
-    outdata = BeaconGetOutputData(&outdataSize);
-    if (outdata != NULL && callback != NULL)
+    if (callback != NULL)
     {
-        DEBUG_PRINT("[COFFLoader] Calling Go callback at %p\n", callback);
-        (*callback)(outdata, outdataSize);
+        outdata = BeaconGetOutputData(&outdataSize);
+        if (outdata != NULL)
+        {
+            DEBUG_PRINT("[COFFLoader] Calling Go callback at %p\n", callback);
+            (*callback)(outdata, outdataSize);
+        }
     }
 cleanup:
     for (tempcounter = 0; tempcounter < 25; tempcounter++)
