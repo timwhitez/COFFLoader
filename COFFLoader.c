@@ -499,7 +499,7 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
     /* Cleanup the allocated memory */
 #ifdef _WIN32
     outdata = BeaconGetOutputData(&outdataSize);
-    if (outdata != NULL)
+    if (outdata != NULL && callback != NULL)
     {
         DEBUG_PRINT("[COFFLoader] Calling Go callback at %p\n", callback);
         (*callback)(outdata, outdataSize);
@@ -544,7 +544,7 @@ int main(int argc, char *argv[])
     printf("Got contents of COFF file\n");
     arguments = unhexlify((unsigned char *)argv[3], &argumentSize);
     printf("Running/Parsing the COFF file\n");
-    checkcode = RunCOFF(argv[1], (unsigned char *)coff_data, filesize, arguments, argumentSize);
+    checkcode = RunCOFF(argv[1], (unsigned char *)coff_data, filesize, arguments, argumentSize, NULL);
     if (checkcode == 0)
     {
 #ifdef _WIN32
