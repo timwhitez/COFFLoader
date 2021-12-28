@@ -1,5 +1,6 @@
 
 all: bof bof32
+all-dll: dll dll32
 debug: debug32 debug64
 
 dll:
