@@ -42,14 +42,14 @@ jobs:
           cp LICENSE.txt ./artifacts/LICENSE
           mv *.dll ./artifacts/
           cd artifacts
-          tar -czvf ../COFFLoader.tar.gz .
+          tar -czvf ../coff-loader.tar.gz .
 
       - name: Sign Package
         run: |
           touch ~/minisign.key && chmod 600 ~/minisign.key
           echo -e "${{ secrets.MINISIGN_PRIVATE_KEY }}" > ~/minisign.key
           MANIFEST=$(cat ./artifacts/extension.json | base64 -w 0)
-          bash -c "echo \"\" | ~/minisign -s ~/minisign.key -S -m ./COFFLoader.tar.gz -t \"$MANIFEST\" -x COFFLoader.minisig"
+          bash -c "echo \"\" | ~/minisign -s ~/minisign.key -S -m ./coff-loader.tar.gz -t \"$MANIFEST\" -x coff-loader.minisig"
 
       - name: "Publish Release"
         uses: "marvinpinto/action-automatic-releases@latest"
@@ -57,5 +57,5 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           prerelease: false
           files: |
-            ./COFFLoader.tar.gz
-            ./COFFLoader.minisig
+            ./coff-loader.tar.gz
+            ./coff-loader.minisig
