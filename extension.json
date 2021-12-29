@@ -4,7 +4,7 @@
     "version": "1.0.8",
     "extension_author": "@lesnuages",
     "original_author": "@TrustedSec",
-    "repo_url": "https://github.com/lesnuages/COFFLoader",
+    "repo_url": "https://github.com/sliverarmory/COFFLoader",
     "help": "Load and execute Beacon Object Files (BOFs) in memory.",
     "entrypoint": "LoadAndRun",
     "files": [
