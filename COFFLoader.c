@@ -126,14 +126,16 @@ void *process_symbol(char *symbolstring)
 #endif
 
     memcpy(localcopy, symbolstring, strlen(symbolstring));
-    if (strncmp(symbolstring, PREPENDSYMBOLVALUE "Beacon", strlen(PREPENDSYMBOLVALUE "Beacon")) == 0 || strncmp(symbolstring, PREPENDSYMBOLVALUE "toWideChar", strlen(PREPENDSYMBOLVALUE "toWideChar")) == 0)
+    if (strncmp(symbolstring, PREPENDSYMBOLVALUE "Beacon", strlen(PREPENDSYMBOLVALUE "Beacon")) == 0 || strncmp(symbolstring, PREPENDSYMBOLVALUE "toWideChar", strlen(PREPENDSYMBOLVALUE "toWideChar")) == 0 ||
+        strncmp(symbolstring, PREPENDSYMBOLVALUE "GetProcAddress", strlen(PREPENDSYMBOLVALUE "GetProcAddress")) == 0 || strncmp(symbolstring, PREPENDSYMBOLVALUE "LoadLibraryA", strlen(PREPENDSYMBOLVALUE "LoadLibraryA")) == 0 ||
+        strncmp(symbolstring, PREPENDSYMBOLVALUE "GetModuleHandle", strlen(PREPENDSYMBOLVALUE "GetModuleHandle")) == 0 || strncmp(symbolstring, PREPENDSYMBOLVALUE "FreeLibrary", strlen(PREPENDSYMBOLVALUE "FreeLibrary")) == 0)
     {
         localfunc = symbolstring + strlen(PREPENDSYMBOLVALUE);
         DEBUG_PRINT("\t\tInternalFunction: %s\n", localfunc);
         /* TODO: Get internal symbol here and set to functionaddress, then
          * return the pointer to the internal function*/
 #if defined(_WIN32)
-        for (tempcounter = 0; tempcounter < 25; tempcounter++)
+        for (tempcounter = 0; tempcounter < 29; tempcounter++)
         {
             if (InternalFunctions[tempcounter][0] != NULL)
             {
@@ -386,8 +388,8 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
                 DEBUG_PRINT("\tReadin OffsetValue : 0x%0X\n", offsetvalue);
                 offsetvalue = (uint32_t)(sectionMapping[coff_sym_ptr[coff_reloc_ptr->SymbolTableIndex].SectionNumber - 1]) + offsetvalue;
                 memcpy(sectionMapping[counter] + coff_reloc_ptr->VirtualAddress, &offsetvalue, sizeof(uint32_t));
-#endif //WIN64 statement close
-#endif //WIN32 statement close
+#endif // WIN64 statement close
+#endif // WIN32 statement close
             }
             else
             {
@@ -524,7 +526,7 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
 #else
             foo = (void (*)(char *, unsigned long))(sectionMapping[coff_sym_ptr[tempcounter].SectionNumber - 1] + coff_sym_ptr[tempcounter].Value);
 #endif
-            //sectionMapping[coff_sym_ptr[tempcounter].SectionNumber-1][coff_sym_ptr[tempcounter].Value+7] = '\xcc';
+            // sectionMapping[coff_sym_ptr[tempcounter].SectionNumber-1][coff_sym_ptr[tempcounter].Value+7] = '\xcc';
             DEBUG_PRINT("Trying to run: %p\n", foo);
             foo((char *)argumentdata, argumentSize);
 #endif
@@ -592,6 +594,7 @@ int main(int argc, char *argv[])
         outdata = BeaconGetOutputData(&outdataSize);
         if (outdata != NULL)
         {
+
             printf("Outdata Below:\n\n%s\n", outdata);
         }
 #endif
