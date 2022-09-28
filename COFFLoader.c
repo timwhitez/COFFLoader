@@ -10,12 +10,17 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #if defined(_WIN32)
 #include <windows.h>
 #include "beacon_compatibility.h"
 #endif
 
 #include "COFFLoader.h"
+
+
+typedef NTSTATUS (NTAPI * pNtAllocateVirtualMemory)(HANDLE ProcessHandle, PVOID* BaseAddress, ULONG_PTR ZeroBits, PSIZE_T RegionSize, ULONG AllocationType, ULONG Protect);
+typedef NTSTATUS (NTAPI * NTPROTECT)(HANDLE,PVOID, PSIZE_T,ULONG,PULONG);
 
 /* Enable or disable debug output if testing or adding new relocation types */
 #ifdef DEBUG
@@ -223,6 +228,13 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
     long unsigned int old_prot = 0;
     uint32_t protect = 0;
     uint32_t protect_index = 0;
+	PVOID BaseA;
+	SIZE_T BSize;
+	HMODULE hModule = LoadLibraryW(L"ntdll.dll");
+    pNtAllocateVirtualMemory NtAllocateVirtualMemory = (pNtAllocateVirtualMemory)GetProcAddress(hModule, "NtAllocateVirtualMemory");
+    NTPROTECT NtProtectVirtualMemory = (NTPROTECT)GetProcAddress(hModule, "NtProtectVirtualMemory");
+
+
 #ifdef _WIN32
     void *funcptrlocation = NULL;
     int32_t offsetvalue = 0;
@@ -292,7 +304,11 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
          * before execution to either PAGE_READWRITE or PAGE_EXECUTE_READ
          * depending on the Section Characteristics. Parse them all again
          * before running and set the memory permissions. */
-        sectionMapping[counter] = VirtualAlloc(NULL, coff_sect_ptr->SizeOfRawData, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
+        //sectionMapping[counter] = VirtualAlloc(NULL, coff_sect_ptr->SizeOfRawData, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
+		BSize = coff_sect_ptr->SizeOfRawData;
+		BaseA = 0;
+		NtAllocateVirtualMemory((HANDLE)-1,&BaseA, 0,&BSize, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
+		sectionMapping[counter] = BaseA;
 #ifdef DEBUG
         sectionSize[counter] = coff_sect_ptr->SizeOfRawData;
 #endif
@@ -309,9 +325,17 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
     /* Allocate and setup the GOT for functions, same here as above. */
 #ifdef _WIN32
 #ifdef _WIN64
-    functionMapping = VirtualAlloc(NULL, 2048, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
+    //functionMapping = VirtualAlloc(NULL, 2048, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
+	BSize = 2048;
+	BaseA = 0;
+	NtAllocateVirtualMemory((HANDLE)-1,&BaseA, 0,&BSize, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
+	functionMapping = BaseA;
 #else
-    functionMapping = VirtualAlloc(NULL, 2048, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
+    //functionMapping = VirtualAlloc(NULL, 2048, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
+	BSize = 2048;
+	BaseA = 0;
+	NtAllocateVirtualMemory((HANDLE)-1,&BaseA, 0,&BSize, MEM_COMMIT | MEM_RESERVE | MEM_TOP_DOWN, PAGE_READWRITE);
+	functionMapping = BaseA;
 #endif
 #endif
 
@@ -492,7 +516,9 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
             {
                 protect |= PAGE_NOCACHE;
             }
-            if (VirtualProtect(sectionMapping[counter], coff_sect_ptr->SizeOfRawData, protect, &old_prot) == 0)
+			BaseA = sectionMapping[counter];
+			BSize = coff_sect_ptr->SizeOfRawData;
+            if (NtProtectVirtualMemory((HANDLE)-1,&BaseA, &BSize, protect, &old_prot) < 0)
             {
 #if DEBUG
                 DWORD error = GetLastError();
@@ -502,8 +528,8 @@ int RunCOFF(char *functionname, unsigned char *coff_data, uint32_t filesize, uns
             }
         }
     }
-
-    if (VirtualProtect(functionMapping, 2048, PAGE_EXECUTE_READ, &old_prot) == 0)
+	BSize = 2048;
+    if (NtProtectVirtualMemory((HANDLE)-1, &functionMapping, &BSize, PAGE_EXECUTE_READ, &old_prot) < 0)
     {
 #if DEBUG
         DWORD error = GetLastError();
